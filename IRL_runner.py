@@ -44,9 +44,12 @@ class Runner(AbstractEnvRunner):
             shape=np.shape(rewards)
             discriminators=model(tf.dtypes.cast(obs,tf.float32))
             discriminators=np.reshape(discriminators,shape)
-            discriminators=[0.9*n if n==1 else n+0.1 for n in discriminators]
+            discriminators=[0.9999999 if n>0.9999999 else n for n in discriminators]
+            discriminators=[0.0000001 if n<0.0000001 else n for n in discriminators]
             #print(discriminators)
-            rewards=np.log(discriminators)-np.log(np.ones(np.shape(discriminators))-discriminators)
+            D_rewards=np.log(discriminators)-np.log(np.ones(np.shape(discriminators))-discriminators)
+            rewards=D_rewards
+            #rewards=rewards+D_rewards
             #print(rewards)
             for info in infos:
                 maybeepinfo = info.get('episode')

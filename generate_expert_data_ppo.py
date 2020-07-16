@@ -77,6 +77,7 @@ def train(args, extra_args):
         env=env,
         seed=seed,
         total_timesteps=total_timesteps,
+        save_interval=100000,
         **alg_kwargs
     )
 
@@ -195,8 +196,9 @@ def configure_logger(log_path, **kwargs):
 
 def main(args):
     # configure logger, disable logging in child MPI processes (with rank > 0)
-    test_steps=2000
+    test_steps=1000000000000
     observations_data=[]
+    all_obs=[]
     actions_data=[]
     episode_rewards=[]
     arg_parser = common_arg_parser()
@@ -229,6 +231,7 @@ def main(args):
         state = model.initial_state if hasattr(model, 'initial_state') else None
 
         episode_rew = np.zeros(env.num_envs) if isinstance(env, VecEnv) else np.zeros(1)
+        real_steps=0
         for n in range(test_steps):
             if state is not None:
                 actions, _, state, _ = model.step(obs)
@@ -249,21 +252,27 @@ def main(args):
             if done_any:
                 for i in np.nonzero(done)[0]:
                     print('episode_rew={}'.format(episode_rew[i]))
-                    episode_rewards.append(episode_rew[i])
+                    if episode_rew[i]> -500:
+                        episode_rewards.append(episode_rew[i])
+                        all_obs=all_obs+observations_data
+                    observations_data.clear()
                     episode_rew[i] = 0
             if n%1000==0:
                 print(n)
+            if n>10000 and np.shape(all_obs)[0]>=50000:
+                break
+        real_steps = np.shape(all_obs)[0]
         print(np.mean(episode_rewards))
 
     #np.save('/home/gaoruoyu/PycharmProjects/garage_test/expert_data_observation_ppo.npy',observations_data)
     #np.save('/home/gaoruoyu/PycharmProjects/garage_test/expert_data_action_ppo.npy',actions_data)
-    file_path='/home/gaoruoyu/PycharmProjects/garage_test/data/expert_data_{}_ppo_{}.data'
-    with open(file_path.format('observations',test_steps), 'wb') as f1:
-        pickle.dump(observations_data,f1)
-    with open(file_path.format('actions',test_steps), 'wb') as f2:
-        pickle.dump(actions_data,f2)
-    with open(file_path.format('rewards',test_steps), 'wb') as f3:
-        pickle.dump(episode_rewards,f3)
+        file_path='/home/gaoruoyu/PycharmProjects/garage_test/data/expert_data_{}_ppo_{}_baseline_pure.data'
+        with open(file_path.format('observations',real_steps), 'wb') as f1:
+            pickle.dump(all_obs,f1)
+        with open(file_path.format('actions',real_steps), 'wb') as f2:
+            pickle.dump(actions_data,f2)
+        with open(file_path.format('rewards',real_steps), 'wb') as f3:
+            pickle.dump(episode_rewards,f3)
     env.close()
 
     return model
