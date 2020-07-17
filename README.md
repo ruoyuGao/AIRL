@@ -1,5 +1,5 @@
 # AIRL
-my implementation with adversarial inverse reinforcement learning on gym(breakout and pendlum)
+my implementation with adversarial inverse reinforcement learning on gym(breakout and pendulum)
 
 
 ## environment requirement
